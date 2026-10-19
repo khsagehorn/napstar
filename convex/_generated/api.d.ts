@@ -10,6 +10,7 @@
 
 import type * as households from "../households.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_validation from "../lib/validation.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   households: typeof households;
   "lib/auth": typeof lib_auth;
+  "lib/validation": typeof lib_validation;
   users: typeof users;
   validators: typeof validators;
 }>;

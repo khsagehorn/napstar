@@ -59,6 +59,8 @@ Record any decision made during the build here (date, decision, reason).
 - 2026-10-19: Shared test fixtures live in `convex/test/fixtures.test-utils.ts`, not `fixtures.ts` as the `testing` skill says. Convex bundles every file in `convex/` except names with more than one dot, and the fixtures use Vite's `import.meta.glob`, which breaks the Convex push.
 - 2026-10-19: `convex/tsconfig.json` (the standard Convex config) is added because Vitest can't resolve the root config's `extends: "expo/tsconfig.base"`.
 - 2026-10-19: New users default to `unitPreference: "ml"`; they can switch to oz in Settings (task 1.8).
+- 2026-10-19: Onboarding asks only for the child's name and birth date. The household is auto-named "<child>'s family" (rename comes with Settings in Phase 4). `households.create` rejects a user who already belongs to a household, so a double-tap can't create two.
+- 2026-10-19: Tabs use `NativeTabs` (`expo-router/native-tabs`, as in the SDK 58 template) with SF Symbols on iOS and Material Symbols on Android, so no icon library is needed. The `(app)` gate uses `Stack.Protected` to switch between onboarding and the tabs.
 
 ---
 
@@ -73,7 +75,7 @@ Goal: a signed-in user can create a household and first child and land on an emp
 - [x] **0.5 Users.** Add a `users.store` mutation (upsert by `tokenIdentifier`) called once after sign-in, and a `users.me` query.
 - [x] **0.6 Auth helpers.** Create `convex/lib/auth.ts` with `requireUser(ctx)`, `requireHouseholdMember(ctx, householdId)`, and `requireChildAccess(ctx, childId)`. Add tests proving a non-member is rejected.
 - [x] **0.7 Routing skeleton.** Add `(auth)` sign-in/sign-up screens (email code is fine for v1), and an `(app)` group that redirects to sign-in when signed out and to onboarding when the user has no household. Add four tabs: Home, History, Trends, Settings (placeholders).
-- [ ] **0.8 Onboarding.** A single screen that creates a household and first child (name, birth date). The time zone defaults to the device zone via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- [x] **0.8 Onboarding.** A single screen that creates a household and first child (name, birth date). The time zone defaults to the device zone via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 - [x] **0.9 Theme.** Add `src/theme/` with light and dark tokens following the `mobile-ui` skill, and a `useTheme()` hook.
 
 **Done when:** a fresh install can sign up, create a child, and see an empty Home tab in both light and dark mode. Signing out and back in returns to Home, not onboarding. The typecheck, test, and lint commands all pass.
