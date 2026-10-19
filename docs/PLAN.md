@@ -72,7 +72,7 @@ Goal: a signed-in user can create a household and first child and land on an emp
 - [x] **0.4 Clerk + Convex auth.** Create `convex/auth.config.ts`. Wrap the root layout in `ClerkProvider` (with `tokenCache`) and `ConvexProviderWithClerk`. Ask the user for the Clerk publishable key and issuer domain, and put them in `.env.local` and the Convex dashboard. Never hardcode them.
 - [x] **0.5 Users.** Add a `users.store` mutation (upsert by `tokenIdentifier`) called once after sign-in, and a `users.me` query.
 - [x] **0.6 Auth helpers.** Create `convex/lib/auth.ts` with `requireUser(ctx)`, `requireHouseholdMember(ctx, householdId)`, and `requireChildAccess(ctx, childId)`. Add tests proving a non-member is rejected.
-- [ ] **0.7 Routing skeleton.** Add `(auth)` sign-in/sign-up screens (email code is fine for v1), and an `(app)` group that redirects to sign-in when signed out and to onboarding when the user has no household. Add four tabs: Home, History, Trends, Settings (placeholders).
+- [x] **0.7 Routing skeleton.** Add `(auth)` sign-in/sign-up screens (email code is fine for v1), and an `(app)` group that redirects to sign-in when signed out and to onboarding when the user has no household. Add four tabs: Home, History, Trends, Settings (placeholders).
 - [ ] **0.8 Onboarding.** A single screen that creates a household and first child (name, birth date). The time zone defaults to the device zone via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 - [x] **0.9 Theme.** Add `src/theme/` with light and dark tokens following the `mobile-ui` skill, and a `useTheme()` hook.
 

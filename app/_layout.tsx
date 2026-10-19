@@ -19,7 +19,7 @@ export default function RootLayout() {
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <ThemeProvider value={toNavigationTheme(theme)}>
           <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
-          <Stack />
+          <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
