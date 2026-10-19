@@ -88,7 +88,7 @@ Goal: a signed-in user can create a household and first child and land on an emp
 Goal: log every event type from Home, including running timers, synced live across devices.
 
 - [x] **1.1 Selected child.** Add a `useSelectedChild()` hook backed by React context, defaulting to the first child. Add a child switcher in the Home header that's hidden when there is only one child.
-- [ ] **1.2 Event mutations** in `convex/events.ts`: `create`, `update`, `remove`, `startTimer(childId, type: "sleep" | "pump")`, and `stopTimer(eventId, endAt, amountMl?)`. `startTimer` must reject if a timer of that type is already open for the child. All mutations validate with shared validators and call `requireChildAccess`.
+- [x] **1.2 Event mutations** in `convex/events.ts`: `create`, `update`, `remove`, `startTimer(childId, type: "sleep" | "pump")`, and `stopTimer(eventId, endAt, amountMl?)`. `startTimer` must reject if a timer of that type is already open for the child. All mutations validate with shared validators and call `requireChildAccess`.
 - [ ] **1.3 Validation rules** (server-side): `endAt > startAt`, `amountMl` must be between 0 and 1000, a diaper must have `wet || dirty`, `foodName` only appears when `method === "solid"`, and `startAt` can be no more than 5 minutes in the future.
 - [ ] **1.4 Home queries.** `events.latestByType(childId)` returns the most recent event of each type. `events.openTimers(childId)` returns running sleep/pump timers.
 - [ ] **1.5 Home screen.** Show a "since last" summary card (e.g. "Fed 2h 14m ago"), using a `useNow(60_000)` ticking hook. Add five large quick-log tiles. Show a running-timer banner with elapsed time and a Stop button.

@@ -11,6 +11,8 @@ export const feedingMethod = v.union(
   v.literal('formula'),
   v.literal('solid'),
 );
+/** Event types that run as a start/stop timer. */
+export const timerType = v.union(v.literal('sleep'), v.literal('pump'));
 export const doseUnit = v.union(
   v.literal('ml'),
   v.literal('mg'),
@@ -87,4 +89,5 @@ export const eventInput = v.union(
 export type EventFields = Infer<typeof eventDoc>;
 export type EventInput = Infer<typeof eventInput>;
 export type EventType = EventFields['type'];
+export type TimerType = Infer<typeof timerType>;
 export type UnitPreference = Infer<typeof unitPreference>;
