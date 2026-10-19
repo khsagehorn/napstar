@@ -1,10 +1,5 @@
-import { CenteredMessage } from '@/components/CenteredMessage';
+import { HomeScreen } from '@/features/home/HomeScreen';
 
-export default function HomeScreen() {
-  return (
-    <CenteredMessage
-      title="Nothing logged yet"
-      body="Feedings, sleep, and diapers you log will show up here."
-    />
-  );
+export default function HomeRoute() {
+  return <HomeScreen />;
 }

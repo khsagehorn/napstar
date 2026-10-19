@@ -61,6 +61,7 @@ Record any decision made during the build here (date, decision, reason).
 - 2026-10-19: New users default to `unitPreference: "ml"`; they can switch to oz in Settings (task 1.8).
 - 2026-10-19: Onboarding asks only for the child's name and birth date. The household is auto-named "<child>'s family" (rename comes with Settings in Phase 4). `households.create` rejects a user who already belongs to a household, so a double-tap can't create two.
 - 2026-10-19: Tabs use `NativeTabs` (`expo-router/native-tabs`, as in the SDK 58 template) with SF Symbols on iOS and Material Symbols on Android, so no icon library is needed. The `(app)` gate uses `Stack.Protected` to switch between onboarding and the tabs.
+- 2026-10-19: `SelectedChildProvider` is mounted in the `(app)` gate, not the root layout as the `mobile-ui` skill says, because `children.list` needs a signed-in, stored user. The selection lasts for the session only (no persistence dependency) and falls back to the first child, ordered by creation time, when unset or no longer visible.
 
 ---
 
@@ -86,7 +87,7 @@ Goal: a signed-in user can create a household and first child and land on an emp
 
 Goal: log every event type from Home, including running timers, synced live across devices.
 
-- [ ] **1.1 Selected child.** Add a `useSelectedChild()` hook backed by React context, defaulting to the first child. Add a child switcher in the Home header that's hidden when there is only one child.
+- [x] **1.1 Selected child.** Add a `useSelectedChild()` hook backed by React context, defaulting to the first child. Add a child switcher in the Home header that's hidden when there is only one child.
 - [ ] **1.2 Event mutations** in `convex/events.ts`: `create`, `update`, `remove`, `startTimer(childId, type: "sleep" | "pump")`, and `stopTimer(eventId, endAt, amountMl?)`. `startTimer` must reject if a timer of that type is already open for the child. All mutations validate with shared validators and call `requireChildAccess`.
 - [ ] **1.3 Validation rules** (server-side): `endAt > startAt`, `amountMl` must be between 0 and 1000, a diaper must have `wet || dirty`, `foodName` only appears when `method === "solid"`, and `startAt` can be no more than 5 minutes in the future.
 - [ ] **1.4 Home queries.** `events.latestByType(childId)` returns the most recent event of each type. `events.openTimers(childId)` returns running sleep/pump timers.

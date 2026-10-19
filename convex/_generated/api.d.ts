@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as children from "../children.js";
 import type * as households from "../households.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_validation from "../lib/validation.js";
@@ -21,6 +22,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  children: typeof children;
   households: typeof households;
   "lib/auth": typeof lib_auth;
   "lib/validation": typeof lib_validation;

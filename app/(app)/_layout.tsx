@@ -4,6 +4,7 @@ import { Redirect, Stack } from 'expo-router';
 
 import { Button } from '@/components/Button';
 import { CenteredMessage } from '@/components/CenteredMessage';
+import { SelectedChildProvider } from '@/hooks/useSelectedChild';
 import { useStoreUser } from '@/hooks/useStoreUser';
 
 import { api } from '../../convex/_generated/api';
@@ -45,13 +46,15 @@ export default function AppLayout() {
 
   const hasHousehold = households.length > 0;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={hasHousehold}>
-        <Stack.Screen name="(tabs)" />
-      </Stack.Protected>
-      <Stack.Protected guard={!hasHousehold}>
-        <Stack.Screen name="onboarding" />
-      </Stack.Protected>
-    </Stack>
+    <SelectedChildProvider enabled={hasHousehold}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={hasHousehold}>
+          <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!hasHousehold}>
+          <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+      </Stack>
+    </SelectedChildProvider>
   );
 }
