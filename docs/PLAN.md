@@ -74,7 +74,7 @@ Goal: a signed-in user can create a household and first child and land on an emp
 - [x] **0.6 Auth helpers.** Create `convex/lib/auth.ts` with `requireUser(ctx)`, `requireHouseholdMember(ctx, householdId)`, and `requireChildAccess(ctx, childId)`. Add tests proving a non-member is rejected.
 - [ ] **0.7 Routing skeleton.** Add `(auth)` sign-in/sign-up screens (email code is fine for v1), and an `(app)` group that redirects to sign-in when signed out and to onboarding when the user has no household. Add four tabs: Home, History, Trends, Settings (placeholders).
 - [ ] **0.8 Onboarding.** A single screen that creates a household and first child (name, birth date). The time zone defaults to the device zone via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
-- [ ] **0.9 Theme.** Add `src/theme/` with light and dark tokens following the `mobile-ui` skill, and a `useTheme()` hook.
+- [x] **0.9 Theme.** Add `src/theme/` with light and dark tokens following the `mobile-ui` skill, and a `useTheme()` hook.
 
 **Done when:** a fresh install can sign up, create a child, and see an empty Home tab in both light and dark mode. Signing out and back in returns to Home, not onboarding. The typecheck, test, and lint commands all pass.
 
