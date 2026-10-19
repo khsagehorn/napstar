@@ -53,6 +53,9 @@ Record any decision made during the build here (date, decision, reason).
 - Auth is Clerk. If Google sign-in ships on iOS, Sign in with Apple must ship too (App Store rule).
 - Pumping events attach to a child for simplicity.
 - Only one running timer per child per type (sleep, pump).
+- 2026-10-19: Routes live in root `app/` (per CLAUDE.md), not the template's `src/app/`. Template demo code was archived to the gitignored `example/` folder instead of deleted. `AGENTS.md` updated to match.
+- 2026-10-19: ESLint set up by `expo lint` (eslint 9 + eslint-config-expo); `example/` is ignored by lint and tsc.
+- 2026-10-19: `@hookform/resolvers` pinned to 5.x. 6.0.0 (released 2026-10-19) has conflicting optional peer ranges for `effect`, which breaks `npm install`. 5.x supports zod 4.
 
 ---
 
@@ -60,8 +63,8 @@ Record any decision made during the build here (date, decision, reason).
 
 Goal: a signed-in user can create a household and first child and land on an empty Home tab.
 
-- [ ] **0.1 Reset template.** Run `npm run reset-project` (or remove example screens manually). Enable `"strict": true` in tsconfig. Add `typecheck`, `test`, `lint` scripts to package.json.
-- [ ] **0.2 Install core deps.** Use `npx expo install` for: `@clerk/clerk-expo`, `expo-secure-store`, `@react-native-community/datetimepicker`, `expo-haptics`, `@shopify/react-native-skia`, `react-native-reanimated`, `react-native-gesture-handler`. Use `npm install` for: `convex`, `date-fns`, `@date-fns/tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `victory-native`. Dev: `vitest`, `convex-test`, `@edge-runtime/vm`.
+- [x] **0.1 Reset template.** Run `npm run reset-project` (or remove example screens manually). Enable `"strict": true` in tsconfig. Add `typecheck`, `test`, `lint` scripts to package.json.
+- [x] **0.2 Install core deps.** Use `npx expo install` for: `@clerk/clerk-expo`, `expo-secure-store`, `@react-native-community/datetimepicker`, `expo-haptics`, `@shopify/react-native-skia`, `react-native-reanimated`, `react-native-gesture-handler`. Use `npm install` for: `convex`, `date-fns`, `@date-fns/tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `victory-native`. Dev: `vitest`, `convex-test`, `@edge-runtime/vm`.
 - [ ] **0.3 Convex init.** User runs `npx convex dev` (needs their login). Create `convex/schema.ts` with the full data model above, and `convex/validators.ts` exporting each event variant validator and the union.
 - [ ] **0.4 Clerk + Convex auth.** Create `convex/auth.config.ts`. Wrap the root layout in `ClerkProvider` (with `tokenCache`) and `ConvexProviderWithClerk`. Ask the user for the Clerk publishable key and issuer domain, and put them in `.env.local` and the Convex dashboard. Never hardcode them.
 - [ ] **0.5 Users.** Add a `users.store` mutation (upsert by `tokenIdentifier`) called once after sign-in, and a `users.me` query.
