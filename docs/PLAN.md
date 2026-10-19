@@ -56,6 +56,9 @@ Record any decision made during the build here (date, decision, reason).
 - 2026-10-19: Routes live in root `app/` (per CLAUDE.md), not the template's `src/app/`. Template demo code was archived to the gitignored `example/` folder instead of deleted. `AGENTS.md` updated to match.
 - 2026-10-19: ESLint set up by `expo lint` (eslint 9 + eslint-config-expo); `example/` is ignored by lint and tsc.
 - 2026-10-19: `@hookform/resolvers` pinned to 5.x. 6.0.0 (released 2026-10-19) has conflicting optional peer ranges for `effect`, which breaks `npm install`. 5.x supports zod 4.
+- 2026-10-19: Shared test fixtures live in `convex/test/fixtures.test-utils.ts`, not `fixtures.ts` as the `testing` skill says. Convex bundles every file in `convex/` except names with more than one dot, and the fixtures use Vite's `import.meta.glob`, which breaks the Convex push.
+- 2026-10-19: `convex/tsconfig.json` (the standard Convex config) is added because Vitest can't resolve the root config's `extends: "expo/tsconfig.base"`.
+- 2026-10-19: New users default to `unitPreference: "ml"`; they can switch to oz in Settings (task 1.8).
 
 ---
 
@@ -67,8 +70,8 @@ Goal: a signed-in user can create a household and first child and land on an emp
 - [x] **0.2 Install core deps.** Use `npx expo install` for: `@clerk/clerk-expo`, `expo-secure-store`, `@react-native-community/datetimepicker`, `expo-haptics`, `@shopify/react-native-skia`, `react-native-reanimated`, `react-native-gesture-handler`. Use `npm install` for: `convex`, `date-fns`, `@date-fns/tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `victory-native`. Dev: `vitest`, `convex-test`, `@edge-runtime/vm`.
 - [x] **0.3 Convex init.** User runs `npx convex dev` (needs their login). Create `convex/schema.ts` with the full data model above, and `convex/validators.ts` exporting each event variant validator and the union.
 - [ ] **0.4 Clerk + Convex auth.** Create `convex/auth.config.ts`. Wrap the root layout in `ClerkProvider` (with `tokenCache`) and `ConvexProviderWithClerk`. Ask the user for the Clerk publishable key and issuer domain, and put them in `.env.local` and the Convex dashboard. Never hardcode them.
-- [ ] **0.5 Users.** Add a `users.store` mutation (upsert by `tokenIdentifier`) called once after sign-in, and a `users.me` query.
-- [ ] **0.6 Auth helpers.** Create `convex/lib/auth.ts` with `requireUser(ctx)`, `requireHouseholdMember(ctx, householdId)`, and `requireChildAccess(ctx, childId)`. Add tests proving a non-member is rejected.
+- [x] **0.5 Users.** Add a `users.store` mutation (upsert by `tokenIdentifier`) called once after sign-in, and a `users.me` query.
+- [x] **0.6 Auth helpers.** Create `convex/lib/auth.ts` with `requireUser(ctx)`, `requireHouseholdMember(ctx, householdId)`, and `requireChildAccess(ctx, childId)`. Add tests proving a non-member is rejected.
 - [ ] **0.7 Routing skeleton.** Add `(auth)` sign-in/sign-up screens (email code is fine for v1), and an `(app)` group that redirects to sign-in when signed out and to onboarding when the user has no household. Add four tabs: Home, History, Trends, Settings (placeholders).
 - [ ] **0.8 Onboarding.** A single screen that creates a household and first child (name, birth date). The time zone defaults to the device zone via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 - [ ] **0.9 Theme.** Add `src/theme/` with light and dark tokens following the `mobile-ui` skill, and a `useTheme()` hook.
