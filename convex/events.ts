@@ -3,7 +3,15 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, type MutationCtx } from './_generated/server';
 import { requireChildAccess } from './lib/auth';
+import { eventRuleError } from './lib/validation';
 import { eventInput, timerType, type EventInput, type TimerType } from './validators';
+
+/** Throws the first business rule `event` breaks (see `eventRuleError`). */
+function assertEventRules(event: EventInput) {
+  // Mutations aren't cached, so reading the clock here is fine.
+  const error = eventRuleError(event, Date.now());
+  if (error) throw new ConvexError(error);
+}
 
 /** The timer type if this event would be a running (open) timer, else null. */
 function openTimerType(event: EventInput): TimerType | null {
@@ -45,6 +53,7 @@ export const create = mutation({
   args: { event: eventInput },
   handler: async (ctx, { event }) => {
     const { user } = await requireChildAccess(ctx, event.childId);
+    assertEventRules(event);
     const timer = openTimerType(event);
     if (timer) await assertNoOpenTimer(ctx, event.childId, timer);
     return await ctx.db.insert('events', { ...event, loggedBy: user._id });
@@ -64,6 +73,7 @@ export const update = mutation({
       throw new ConvexError("An entry can't be moved to another child");
     }
     if (event.type !== existing.type) throw new ConvexError("An entry's type can't be changed");
+    assertEventRules(event);
     const timer = openTimerType(event);
     if (timer) await assertNoOpenTimer(ctx, event.childId, timer, id);
     await ctx.db.replace(id, { ...event, loggedBy: existing.loggedBy });
@@ -107,8 +117,10 @@ export const stopTimer = mutation({
     if (event.endAt !== undefined) throw new ConvexError('This timer has already stopped');
     if (event.type === 'sleep') {
       if (amountMl !== undefined) throw new ConvexError('Sleep entries have no amount');
+      assertEventRules({ ...event, endAt });
       await ctx.db.patch(eventId, { endAt });
     } else {
+      assertEventRules({ ...event, endAt, amountMl });
       await ctx.db.patch(eventId, { endAt, amountMl });
     }
     return null;

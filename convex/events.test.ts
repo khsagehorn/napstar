@@ -239,6 +239,7 @@ describe('events.startTimer', () => {
   test('allows a new timer once the previous one stops', async () => {
     const { asA, a } = await setup();
     const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    vi.setSystemTime(NOW + 2 * HOUR); // the timer has been running for 2h
     await asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR });
     await expect(
       asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' }),
@@ -258,6 +259,7 @@ describe('events.stopTimer', () => {
   test("rejects stopping another household's timer", async () => {
     const { asA, asB, a } = await setup();
     const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    vi.setSystemTime(NOW + 2 * HOUR); // the timer has been running for 2h
     await expect(
       asB.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR }),
     ).rejects.toThrow('No access');
@@ -266,6 +268,7 @@ describe('events.stopTimer', () => {
   test('stops a pump timer and records the amount', async () => {
     const { t, asA, a } = await setup();
     const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'pump' });
+    vi.setSystemTime(NOW + 2 * HOUR); // the timer has been running for 2h
     await asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR, amountMl: 90 });
     expect(await getEvent(t, id)).toMatchObject({ endAt: NOW + HOUR, amountMl: 90 });
   });
@@ -273,6 +276,7 @@ describe('events.stopTimer', () => {
   test('rejects an amount on a sleep timer', async () => {
     const { asA, a } = await setup();
     const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    vi.setSystemTime(NOW + 2 * HOUR); // the timer has been running for 2h
     await expect(
       asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR, amountMl: 90 }),
     ).rejects.toThrow('no amount');
@@ -281,6 +285,7 @@ describe('events.stopTimer', () => {
   test('rejects stopping a timer twice', async () => {
     const { asA, a } = await setup();
     const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    vi.setSystemTime(NOW + 2 * HOUR); // the timer has been running for 2h
     await asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR });
     await expect(
       asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + 2 * HOUR }),
@@ -293,5 +298,95 @@ describe('events.stopTimer', () => {
     await expect(
       asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR }),
     ).rejects.toThrow('timer');
+  });
+
+  test('rejects an end time before the start', async () => {
+    const { asA, a } = await setup();
+    const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    await expect(
+      asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW - HOUR }),
+    ).rejects.toThrow('after start');
+  });
+
+  test('rejects an end time in the future', async () => {
+    const { asA, a } = await setup();
+    const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    await expect(
+      asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR }),
+    ).rejects.toThrow('future');
+  });
+
+  test('rejects an out-of-range pump amount', async () => {
+    const { asA, a } = await setup();
+    const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'pump' });
+    vi.setSystemTime(NOW + HOUR);
+    await expect(
+      asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR, amountMl: 1001 }),
+    ).rejects.toThrow('between 0 and 1000');
+  });
+});
+
+describe('business rules (1.3)', () => {
+  const feeding = (childId: Id<'children'>) =>
+    ({ type: 'feeding', childId, startAt: NOW - HOUR, method: 'formula' }) as const;
+
+  test.each([
+    ['a diaper that is neither wet nor dirty', { wet: false, dirty: false }, 'wet, dirty, or both'],
+    ['a start more than 5 minutes in the future', { startAt: NOW + 6 * 60 * 1000 }, 'future'],
+  ])('create rejects %s', async (_label, override, message) => {
+    const { asA, a } = await setup();
+    await expect(
+      asA.mutation(api.events.create, { event: { ...diaper(a.childId), ...override } }),
+    ).rejects.toThrow(message);
+  });
+
+  test('create allows a start up to 5 minutes ahead (device clock drift)', async () => {
+    const { asA, a } = await setup();
+    await expect(
+      asA.mutation(api.events.create, {
+        event: { ...diaper(a.childId), startAt: NOW + 5 * 60 * 1000 },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test.each([
+    ['a negative amount', { amountMl: -1 }, 'between 0 and 1000'],
+    ['a huge amount', { amountMl: 1001 }, 'between 0 and 1000'],
+    ['a food name on a formula feeding', { foodName: 'banana' }, 'only for solids'],
+  ])('create rejects a feeding with %s', async (_label, override, message) => {
+    const { asA, a } = await setup();
+    await expect(
+      asA.mutation(api.events.create, { event: { ...feeding(a.childId), ...override } }),
+    ).rejects.toThrow(message);
+  });
+
+  test('create accepts a solid feeding with a food name', async () => {
+    const { asA, a } = await setup();
+    await expect(
+      asA.mutation(api.events.create, {
+        event: { ...feeding(a.childId), method: 'solid', foodName: 'banana', amountMl: 30 },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test('create rejects a sleep that ends before it starts', async () => {
+    const { asA, a } = await setup();
+    await expect(
+      asA.mutation(api.events.create, {
+        event: { type: 'sleep', childId: a.childId, startAt: NOW - HOUR, endAt: NOW - HOUR },
+      }),
+    ).rejects.toThrow('after start');
+  });
+
+  test('update applies the same rules and leaves the entry unchanged', async () => {
+    const { t, asA, a } = await setup();
+    const id = await asA.mutation(api.events.create, { event: diaper(a.childId) });
+    await expect(
+      asA.mutation(api.events.update, {
+        id,
+        event: { ...diaper(a.childId), wet: false, dirty: false },
+      }),
+    ).rejects.toThrow('wet, dirty, or both');
+    expect(await getEvent(t, id)).toMatchObject({ wet: true, dirty: false });
   });
 });
