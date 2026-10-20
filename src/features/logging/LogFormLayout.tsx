@@ -12,10 +12,19 @@ type Props = {
   error?: string;
   saving: boolean;
   onSave: () => void;
+  /** Defaults to "Save". */
+  saveLabel?: string;
 };
 
 /** Shared frame for every log form: title, fields, error, and a Save button. */
-export function LogFormLayout({ title, children, error, saving, onSave }: Props) {
+export function LogFormLayout({
+  title,
+  children,
+  error,
+  saving,
+  onSave,
+  saveLabel = 'Save',
+}: Props) {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
 
@@ -31,7 +40,7 @@ export function LogFormLayout({ title, children, error, saving, onSave }: Props)
             {error}
           </Text>
         ) : null}
-        <Button title="Save" onPress={onSave} loading={saving} />
+        <Button title={saveLabel} onPress={onSave} loading={saving} />
       </View>
     </Screen>
   );

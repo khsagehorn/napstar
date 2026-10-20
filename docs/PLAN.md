@@ -68,6 +68,8 @@ Record any decision made during the build here (date, decision, reason).
 - 2026-10-19: Home icons use `expo-symbols` (already installed by the template): SF Symbols on iOS and Material Symbols on Android. Per-type label and icon live in `src/features/events/meta.ts`.
 - 2026-10-19: The Home Stop button on a pump timer stops it without an amount. Adding the amount on stop belongs to the log sheet (1.6/1.7) or to editing (2.3).
 - 2026-10-19: 1.6 builds the log sheet shell (`LogFormLayout`, `TimeField`, `useSaveEvent`) and proves it with the diaper form (wet/dirty toggles). Feeding, sleep, pump, and medication forms, plus the diaper "Both" shortcut, come in 1.7. The form time is `null` for "Now" and is resolved when Save is tapped, so a sheet left open still logs the right moment. Saving runs the shared `eventRuleError` first for instant feedback. The post-save toast from the `mobile-ui` skill waits for the toast component in 5.3; the haptic and sheet dismissal confirm the save for now.
+- 2026-10-19: 1.7 pulled `convex/lib/units.ts` (with round-trip tests) and a read-only `useUnits()` forward from 1.8, because the amount fields need them. 1.8 keeps the Settings toggle and the `users.setUnitPreference` mutation. The recent-meds suggestions on the medication form wait for the `recentMedications` query in 1.9.
+- 2026-10-19: Sleep and pump share `TimedForm` ("Start timer" or "Enter times"). Manual entries default to an hour ago → now. Notes and pump amount are only offered for manual entries, because `startTimer` doesn't take them. The feeding form repeats the last method and amount. Medication dose is free text, never checked or suggested, and only the name is required.
 
 ---
 
@@ -99,7 +101,7 @@ Goal: log every event type from Home, including running timers, synced live acro
 - [x] **1.4 Home queries.** `events.latestByType(childId)` returns the most recent event of each type. `events.openTimers(childId)` returns running sleep/pump timers.
 - [x] **1.5 Home screen.** Show a "since last" summary card (e.g. "Fed 2h 14m ago"), using a `useNow(60_000)` ticking hook. Add five large quick-log tiles. Show a running-timer banner with elapsed time and a Stop button.
 - [x] **1.6 Log sheet** `app/(app)/log/[type].tsx`, presented as a `formSheet` modal. There is one route with a form component per type in `src/features/logging/forms/`. Time defaults to now and can be adjusted. Save triggers haptic feedback and closes the sheet.
-- [ ] **1.7 Per-type forms.** Feeding has a method selector and an amount in the user's unit (solids get a food name plus an optional amount). Sleep and pump offer "Start timer" or manual start/end entry, and pump adds an amount. Medication has a name with recent-meds suggestions, a dose, and a unit. Diaper has wet/dirty toggles with a "Both" shortcut.
+- [x] **1.7 Per-type forms.** Feeding has a method selector and an amount in the user's unit (solids get a food name plus an optional amount). Sleep and pump offer "Start timer" or manual start/end entry, and pump adds an amount. Medication has a name with recent-meds suggestions, a dose, and a unit. Diaper has wet/dirty toggles with a "Both" shortcut.
 - [ ] **1.8 Units.** Add `convex/lib/units.ts` and a `useUnits()` hook. Users can toggle ml/oz in Settings (stored on `users.unitPreference`).
 - [ ] **1.9 Recent medications.** `events.recentMedications(childId)` returns distinct name/dose/unit combinations from the last 30 days for one-tap repeat.
 

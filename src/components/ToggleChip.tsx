@@ -9,17 +9,19 @@ type Props = {
   onPress: () => void;
   /** Accent when selected; defaults to the primary color. */
   color?: string;
+  /** 'checkbox' for independent toggles, 'radio' inside a single-choice group. */
+  role?: 'checkbox' | 'radio';
 };
 
 /** A large on/off chip for small choices (diaper type, feeding method, dose unit). */
-export function ToggleChip({ label, selected, onPress, color }: Props) {
+export function ToggleChip({ label, selected, onPress, color, role = 'checkbox' }: Props) {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const accent = color ?? theme.colors.primary;
 
   return (
     <Pressable
-      accessibilityRole="checkbox"
+      accessibilityRole={role}
       accessibilityState={{ checked: selected }}
       accessibilityLabel={label}
       onPress={onPress}
