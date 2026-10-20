@@ -186,3 +186,55 @@ export const openTimers = query({
     return { sleep, pump };
   },
 });
+
+/** How far back `recentMedications` looks. A rolling window, not calendar days. */
+export const RECENT_MEDICATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+/** Most medication events scanned, and distinct entries returned. */
+const RECENT_MEDICATION_SCAN = 200;
+const RECENT_MEDICATION_LIMIT = 5;
+
+/**
+ * Distinct name/dose/unit combinations given in the 30 days before `now`,
+ * newest first, for one-tap repeat. These are the caregivers' own past
+ * entries, returned as recorded; nothing is computed or suggested.
+ * `now` comes from the client because queries must not read the clock.
+ */
+export const recentMedications = query({
+  args: { childId: v.id('children'), now: v.number() },
+  handler: async (ctx, { childId, now }) => {
+    await requireChildAccess(ctx, childId);
+    const events = await ctx.db
+      .query('events')
+      .withIndex('by_child_type_time', (q) =>
+        q
+          .eq('childId', childId)
+          .eq('type', 'medication')
+          .gte('startAt', now - RECENT_MEDICATION_WINDOW_MS)
+          .lte('startAt', now),
+      )
+      .order('desc')
+      .take(RECENT_MEDICATION_SCAN);
+
+    const seen = new Set<string>();
+    const recent: {
+      medName: string;
+      dose: string;
+      doseUnit: EventOf<'medication'>['doseUnit'];
+      lastGivenAt: number;
+    }[] = [];
+    for (const event of events) {
+      if (!isType(event, 'medication')) continue;
+      const key = [event.medName.trim().toLowerCase(), event.dose.trim(), event.doseUnit].join('|');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      recent.push({
+        medName: event.medName,
+        dose: event.dose,
+        doseUnit: event.doseUnit,
+        lastGivenAt: event.startAt,
+      });
+      if (recent.length === RECENT_MEDICATION_LIMIT) break;
+    }
+    return recent;
+  },
+});

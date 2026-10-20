@@ -508,3 +508,102 @@ describe('events.openTimers', () => {
     });
   });
 });
+
+describe('events.recentMedications', () => {
+  const DAY = 24 * HOUR;
+  const med = (
+    childId: Id<'children'>,
+    startAt: number,
+    medName: string,
+    dose: string,
+    doseUnit: 'ml' | 'mg' | 'drops' | 'tablet' = 'ml',
+  ) => ({ type: 'medication', childId, startAt, medName, dose, doseUnit }) as const;
+
+  async function seed(t: TestConvex, events: ReturnType<typeof med>[], loggedBy: Id<'users'>) {
+    await t.run(async (ctx) => {
+      for (const event of events) await ctx.db.insert('events', { ...event, loggedBy });
+    });
+  }
+
+  test('throws when signed out', async () => {
+    const { t, a } = await setup();
+    await expect(
+      t.query(api.events.recentMedications, { childId: a.childId, now: NOW }),
+    ).rejects.toThrow('Not signed in');
+  });
+
+  test("rejects another household's child", async () => {
+    const { asB, a } = await setup();
+    await expect(
+      asB.query(api.events.recentMedications, { childId: a.childId, now: NOW }),
+    ).rejects.toThrow('No access');
+  });
+
+  test('returns distinct combinations, newest first, with when each was last given', async () => {
+    const { t, asA, a } = await setup();
+    await seed(
+      t,
+      [
+        med(a.childId, NOW - 3 * DAY, 'Tylenol', '2.5'),
+        med(a.childId, NOW - 2 * DAY, 'Vitamin D', '1', 'drops'),
+        med(a.childId, NOW - HOUR, 'Tylenol', '2.5'),
+        // Same name with a different dose is its own entry.
+        med(a.childId, NOW - 4 * DAY, 'Tylenol', '1.25'),
+      ],
+      a.userId,
+    );
+    const recent = await asA.query(api.events.recentMedications, { childId: a.childId, now: NOW });
+    expect(recent).toEqual([
+      { medName: 'Tylenol', dose: '2.5', doseUnit: 'ml', lastGivenAt: NOW - HOUR },
+      { medName: 'Vitamin D', dose: '1', doseUnit: 'drops', lastGivenAt: NOW - 2 * DAY },
+      { medName: 'Tylenol', dose: '1.25', doseUnit: 'ml', lastGivenAt: NOW - 4 * DAY },
+    ]);
+  });
+
+  test('treats names differing only in case or spacing as the same', async () => {
+    const { t, asA, a } = await setup();
+    await seed(
+      t,
+      [med(a.childId, NOW - 2 * HOUR, 'tylenol ', '2.5'), med(a.childId, NOW - HOUR, 'Tylenol', '2.5')],
+      a.userId,
+    );
+    const recent = await asA.query(api.events.recentMedications, { childId: a.childId, now: NOW });
+    expect(recent).toEqual([
+      { medName: 'Tylenol', dose: '2.5', doseUnit: 'ml', lastGivenAt: NOW - HOUR },
+    ]);
+  });
+
+  test('only looks at the 30 days before now', async () => {
+    const { t, asA, a } = await setup();
+    await seed(
+      t,
+      [
+        med(a.childId, NOW - 31 * DAY, 'Old', '1'),
+        med(a.childId, NOW - 29 * DAY, 'Recent', '1'),
+        med(a.childId, NOW + HOUR, 'Future', '1'),
+      ],
+      a.userId,
+    );
+    const recent = await asA.query(api.events.recentMedications, { childId: a.childId, now: NOW });
+    expect(recent.map((m) => m.medName)).toEqual(['Recent']);
+  });
+
+  test("ignores other children's medications and other event types", async () => {
+    const { t, asA, a, b } = await setup();
+    await seed(t, [med(b.childId, NOW - HOUR, 'Other child', '1')], b.userId);
+    await asA.mutation(api.events.create, { event: diaper(a.childId) });
+    const recent = await asA.query(api.events.recentMedications, { childId: a.childId, now: NOW });
+    expect(recent).toEqual([]);
+  });
+
+  test('returns at most 5 entries', async () => {
+    const { t, asA, a } = await setup();
+    await seed(
+      t,
+      Array.from({ length: 7 }, (_, i) => med(a.childId, NOW - (i + 1) * HOUR, `Med ${i}`, '1')),
+      a.userId,
+    );
+    const recent = await asA.query(api.events.recentMedications, { childId: a.childId, now: NOW });
+    expect(recent.map((m) => m.medName)).toEqual(['Med 0', 'Med 1', 'Med 2', 'Med 3', 'Med 4']);
+  });
+});

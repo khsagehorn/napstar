@@ -1,4 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from 'convex/react';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -7,9 +9,11 @@ import { TextField } from '@/components/TextField';
 import { TimeField } from '@/components/TimeField';
 import { useTheme } from '@/theme';
 
+import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { LogFormLayout } from '../LogFormLayout';
 import { NotesField, notesOrUndefined } from '../NotesField';
+import { RecentMedications, type RecentMedication } from '../RecentMedications';
 import { resolveTime, useSaveEvent } from '../useSaveEvent';
 
 const DOSE_UNITS = [
@@ -35,9 +39,14 @@ type Props = { childId: Id<'children'> };
 export function MedicationForm({ childId }: Props) {
   const theme = useTheme();
   const { save, error } = useSaveEvent();
+  // Fixed at mount: the 30-day window and "last given" text don't need to tick
+  // while the sheet is open, and a stable arg keeps the query from refetching.
+  const [now] = useState(() => Date.now());
+  const recent = useQuery(api.events.recentMedications, { childId, now });
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
@@ -56,9 +65,15 @@ export function MedicationForm({ childId }: Props) {
     }),
   );
 
-  // Recent-medication suggestions for one-tap repeat arrive with task 1.9.
+  const fillFrom = ({ medName, dose, doseUnit }: RecentMedication) => {
+    setValue('medName', medName, { shouldValidate: true });
+    setValue('dose', dose);
+    setValue('doseUnit', doseUnit);
+  };
+
   return (
     <LogFormLayout title="Medication" error={error} saving={isSubmitting} onSave={onSave}>
+      {recent ? <RecentMedications recent={recent} now={now} onPick={fillFrom} /> : null}
       <Controller
         control={control}
         name="medName"
