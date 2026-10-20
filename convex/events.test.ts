@@ -390,3 +390,121 @@ describe('business rules (1.3)', () => {
     expect(await getEvent(t, id)).toMatchObject({ wet: true, dirty: false });
   });
 });
+
+describe('events.latestByType', () => {
+  test('throws when signed out', async () => {
+    const { t, a } = await setup();
+    await expect(t.query(api.events.latestByType, { childId: a.childId })).rejects.toThrow(
+      'Not signed in',
+    );
+  });
+
+  test("rejects reading another household's child", async () => {
+    const { asB, a } = await setup();
+    await expect(asB.query(api.events.latestByType, { childId: a.childId })).rejects.toThrow(
+      'No access',
+    );
+  });
+
+  test('returns null for every type when nothing is logged', async () => {
+    const { asA, a } = await setup();
+    expect(await asA.query(api.events.latestByType, { childId: a.childId })).toEqual({
+      feeding: null,
+      sleep: null,
+      pump: null,
+      medication: null,
+      diaper: null,
+    });
+  });
+
+  test('picks the latest start time, not the latest logged (backdating)', async () => {
+    const { asA, a } = await setup();
+    const recentId = await asA.mutation(api.events.create, {
+      event: { ...diaper(a.childId), startAt: NOW - HOUR },
+    });
+    // Logged afterwards, but it happened earlier.
+    await asA.mutation(api.events.create, {
+      event: { ...diaper(a.childId), startAt: NOW - 3 * HOUR, dirty: true },
+    });
+    const latest = await asA.query(api.events.latestByType, { childId: a.childId });
+    expect(latest.diaper?._id).toBe(recentId);
+  });
+
+  test('keeps types and children separate', async () => {
+    const { t, asA, a } = await setup();
+    const siblingId = await t.run(async (ctx) =>
+      ctx.db.insert('children', {
+        householdId: a.householdId,
+        name: 'Sibling',
+        birthDate: '2026-06-01',
+        timezone: 'America/Chicago',
+      }),
+    );
+    const feedingId = await asA.mutation(api.events.create, {
+      event: {
+        type: 'feeding',
+        childId: a.childId,
+        startAt: NOW - 2 * HOUR,
+        method: 'formula',
+        amountMl: 120,
+      },
+    });
+    const sleepId = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    await asA.mutation(api.events.create, { event: diaper(siblingId) });
+
+    const latest = await asA.query(api.events.latestByType, { childId: a.childId });
+    expect(latest.feeding).toMatchObject({ _id: feedingId, method: 'formula', amountMl: 120 });
+    expect(latest.sleep?._id).toBe(sleepId);
+    expect(latest.diaper).toBeNull();
+    expect(latest.pump).toBeNull();
+    expect(latest.medication).toBeNull();
+  });
+});
+
+describe('events.openTimers', () => {
+  test('throws when signed out', async () => {
+    const { t, a } = await setup();
+    await expect(t.query(api.events.openTimers, { childId: a.childId })).rejects.toThrow(
+      'Not signed in',
+    );
+  });
+
+  test("rejects reading another household's child", async () => {
+    const { asB, a } = await setup();
+    await expect(asB.query(api.events.openTimers, { childId: a.childId })).rejects.toThrow(
+      'No access',
+    );
+  });
+
+  test('returns running timers only', async () => {
+    const { asA, a } = await setup();
+    await asA.mutation(api.events.create, {
+      event: { type: 'sleep', childId: a.childId, startAt: NOW - 3 * HOUR, endAt: NOW - 2 * HOUR },
+    });
+    const pumpId = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'pump' });
+    expect(await asA.query(api.events.openTimers, { childId: a.childId })).toMatchObject({
+      sleep: null,
+      pump: { _id: pumpId, type: 'pump', startAt: NOW },
+    });
+  });
+
+  test('a stopped timer is no longer returned', async () => {
+    const { asA, a } = await setup();
+    const id = await asA.mutation(api.events.startTimer, { childId: a.childId, type: 'sleep' });
+    vi.setSystemTime(NOW + HOUR);
+    await asA.mutation(api.events.stopTimer, { eventId: id, endAt: NOW + HOUR });
+    expect(await asA.query(api.events.openTimers, { childId: a.childId })).toEqual({
+      sleep: null,
+      pump: null,
+    });
+  });
+
+  test("ignores another child's running timer", async () => {
+    const { asA, asB, a, b } = await setup();
+    await asB.mutation(api.events.startTimer, { childId: b.childId, type: 'sleep' });
+    expect(await asA.query(api.events.openTimers, { childId: a.childId })).toEqual({
+      sleep: null,
+      pump: null,
+    });
+  });
+});
