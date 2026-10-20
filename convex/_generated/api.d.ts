@@ -12,6 +12,7 @@ import type * as children from "../children.js";
 import type * as events from "../events.js";
 import type * as households from "../households.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_time from "../lib/time.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   households: typeof households;
   "lib/auth": typeof lib_auth;
+  "lib/time": typeof lib_time;
   "lib/validation": typeof lib_validation;
   users: typeof users;
   validators: typeof validators;

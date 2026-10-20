@@ -50,6 +50,7 @@ export default function AppLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={hasHousehold}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="log/[type]" options={{ presentation: 'formSheet' }} />
         </Stack.Protected>
         <Stack.Protected guard={!hasHousehold}>
           <Stack.Screen name="onboarding" />

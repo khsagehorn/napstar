@@ -1,3 +1,4 @@
+import { useQuery } from 'convex/react';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -6,12 +7,19 @@ import { Screen } from '@/components/Screen';
 import { useSelectedChild } from '@/hooks/useSelectedChild';
 import { useTheme, type Theme } from '@/theme';
 
+import { api } from '../../../convex/_generated/api';
 import { ChildSwitcher } from './ChildSwitcher';
+import { QuickLogTiles } from './QuickLogTiles';
+import { SinceLastCard } from './SinceLastCard';
+import { TimerBanner } from './TimerBanner';
 
 export function HomeScreen() {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const { children, child } = useSelectedChild();
+  const args = child ? { childId: child._id } : 'skip';
+  const latest = useQuery(api.events.latestByType, args);
+  const timers = useQuery(api.events.openTimers, args);
 
   if (children === undefined) return <CenteredMessage loading />;
   if (!child) {
@@ -26,11 +34,12 @@ export function HomeScreen() {
         </Text>
         <ChildSwitcher />
       </View>
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>Nothing logged yet</Text>
-        <Text style={styles.emptyBody}>
-          Feedings, sleep, and diapers you log will show up here.
-        </Text>
+      {timers?.sleep ? <TimerBanner timer={timers.sleep} /> : null}
+      {timers?.pump ? <TimerBanner timer={timers.pump} /> : null}
+      <SinceLastCard latest={latest} />
+      {/* Pushed to the bottom of the screen, where a thumb reaches. */}
+      <View style={styles.tiles}>
+        <QuickLogTiles />
       </View>
     </Screen>
   );
@@ -40,7 +49,5 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     header: { gap: theme.spacing.md },
     title: { ...theme.typography.largeTitle, color: theme.colors.text },
-    empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md },
-    emptyTitle: { ...theme.typography.title, color: theme.colors.text, textAlign: 'center' },
-    emptyBody: { ...theme.typography.body, color: theme.colors.textMuted, textAlign: 'center' },
+    tiles: { marginTop: 'auto' },
   });
