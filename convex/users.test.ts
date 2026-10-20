@@ -65,3 +65,44 @@ describe('users.me', () => {
     expect(await asB.query(api.users.me, {})).toBeNull();
   });
 });
+
+describe('users.setUnitPreference', () => {
+  test('throws when signed out', async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(api.users.setUnitPreference, { unitPreference: 'oz' }),
+    ).rejects.toThrow('Not signed in');
+  });
+
+  test('throws before the user is stored', async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.withIdentity(identity).mutation(api.users.setUnitPreference, { unitPreference: 'oz' }),
+    ).rejects.toThrow('User not found');
+  });
+
+  test("updates only the caller's own preference", async () => {
+    const t = convexTest(schema, modules);
+    const asA = t.withIdentity(identity);
+    const asB = t.withIdentity({ tokenIdentifier: 'token-b' });
+    await asA.mutation(api.users.store, {});
+    await asB.mutation(api.users.store, {});
+
+    await asA.mutation(api.users.setUnitPreference, { unitPreference: 'oz' });
+    expect((await asA.query(api.users.me, {}))?.unitPreference).toBe('oz');
+    expect((await asB.query(api.users.me, {}))?.unitPreference).toBe('ml');
+
+    await asA.mutation(api.users.setUnitPreference, { unitPreference: 'ml' });
+    expect((await asA.query(api.users.me, {}))?.unitPreference).toBe('ml');
+  });
+
+  test('rejects an unknown unit', async () => {
+    const t = convexTest(schema, modules);
+    const asA = t.withIdentity(identity);
+    await asA.mutation(api.users.store, {});
+    await expect(
+      // @ts-expect-error: the validator only allows 'ml' | 'oz'
+      asA.mutation(api.users.setUnitPreference, { unitPreference: 'cups' }),
+    ).rejects.toThrow();
+  });
+});

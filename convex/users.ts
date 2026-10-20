@@ -1,6 +1,8 @@
 import { ConvexError } from 'convex/values';
 
 import { mutation, query } from './_generated/server';
+import { requireUser } from './lib/auth';
+import { unitPreference } from './validators';
 
 /**
  * Upserts the signed-in user's row from their Clerk identity. Called once
@@ -50,5 +52,14 @@ export const me = query({
       .query('users')
       .withIndex('by_token', (q) => q.eq('tokenIdentifier', identity.tokenIdentifier))
       .unique();
+  },
+});
+
+/** Sets the signed-in user's volume unit for display and input. */
+export const setUnitPreference = mutation({
+  args: { unitPreference },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    await ctx.db.patch(user._id, { unitPreference: args.unitPreference });
   },
 });
