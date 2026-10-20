@@ -112,17 +112,19 @@ function TimedFormFields({ childId, type, unit, running }: FieldsProps) {
         )}
       />
 
-      {timerMode ? (
-        running ? (
-          <Text style={styles.warning} accessibilityLiveRegion="polite">
-            A {type} timer is already running. Stop it from Home first.
-          </Text>
-        ) : (
-          <Text style={styles.hint}>
-            The timer starts now. Stop it from the banner on Home.
-          </Text>
-        )
-      ) : (
+      {running ? (
+        // Shown in both modes: manual entry is the default while a timer runs,
+        // so the user needs to know why. Only starting a timer is blocked.
+        <Text style={timerMode ? styles.warning : styles.hint} accessibilityLiveRegion="polite">
+          {timerMode
+            ? `A ${type} timer is already running. Stop it from Home first.`
+            : `A ${type} timer is already running, so you can only enter a finished session here.`}
+        </Text>
+      ) : timerMode ? (
+        <Text style={styles.hint}>The timer starts now. Stop it from the banner on Home.</Text>
+      ) : null}
+
+      {timerMode ? null : (
         <>
           <Controller
             control={control}
